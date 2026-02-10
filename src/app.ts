@@ -1,17 +1,17 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const helmet = require('helmet');
-const config = require('./config');
-const routes = require('./routes');
-const requestLogger = require('./middleware/requestLogger');
-const errorHandler = require('./middleware/errorHandler');
+import express, { Express, Request, Response } from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import helmet from 'helmet';
+import config from './config';
+import routes from './routes';
+import requestLogger from './middleware/requestLogger';
+import errorHandler from './middleware/errorHandler';
 
 /**
  * Express Application Setup
  */
-function createApp() {
-  const app = express();
+function createApp(): Express {
+  const app: Express = express();
 
   // Security middleware
   app.use(helmet());
@@ -27,7 +27,7 @@ function createApp() {
   app.use(requestLogger);
 
   // Root endpoint
-  app.get('/', (req, res) => {
+  app.get('/', (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: `Welcome to ${config.appName}`,
@@ -44,7 +44,7 @@ function createApp() {
   app.use(config.apiPrefix, routes);
 
   // 404 handler
-  app.use((req, res) => {
+  app.use((req: Request, res: Response) => {
     res.status(404).json({
       success: false,
       message: 'Route not found',
@@ -57,4 +57,4 @@ function createApp() {
   return app;
 }
 
-module.exports = createApp;
+export default createApp;

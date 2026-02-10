@@ -1,11 +1,13 @@
-const Event = require('../models/Event');
-const logger = require('../utils/logger');
+import Event, { EventData } from '../models/Event';
+import logger from '../utils/logger';
 
 /**
  * Event Service
  * Manages event creation and storage
  */
 class EventService {
+  private events: Map<string, Event>;
+
   constructor() {
     // In-memory storage for POC (in production, use a database)
     this.events = new Map();
@@ -13,13 +15,11 @@ class EventService {
 
   /**
    * Create a new event
-   * @param {Object} eventData - Event data
-   * @returns {Event} Created event
    */
-  createEvent(eventData) {
+  createEvent(eventData: EventData): Event {
     try {
       const event = new Event(eventData);
-      
+
       // Validate event
       const validation = event.validate();
       if (!validation.isValid) {
@@ -28,7 +28,7 @@ class EventService {
 
       // Store event
       this.events.set(event.id, event);
-      
+
       logger.info(`Event created: ${event.id} - ${event.title}`);
       return event;
     } catch (error) {
@@ -39,28 +39,22 @@ class EventService {
 
   /**
    * Get event by ID
-   * @param {string} eventId - Event ID
-   * @returns {Event|null} Event or null if not found
    */
-  getEvent(eventId) {
+  getEvent(eventId: string): Event | null {
     return this.events.get(eventId) || null;
   }
 
   /**
    * Get all events
-   * @returns {Array<Event>} Array of events
    */
-  getAllEvents() {
+  getAllEvents(): Event[] {
     return Array.from(this.events.values());
   }
 
   /**
    * Update event
-   * @param {string} eventId - Event ID
-   * @param {Object} updates - Updates to apply
-   * @returns {Event|null} Updated event or null if not found
    */
-  updateEvent(eventId, updates) {
+  updateEvent(eventId: string, updates: Partial<EventData>): Event | null {
     const event = this.events.get(eventId);
     if (!event) {
       return null;
@@ -68,17 +62,15 @@ class EventService {
 
     Object.assign(event, updates);
     this.events.set(eventId, event);
-    
+
     logger.info(`Event updated: ${eventId}`);
     return event;
   }
 
   /**
    * Delete event
-   * @param {string} eventId - Event ID
-   * @returns {boolean} True if deleted, false if not found
    */
-  deleteEvent(eventId) {
+  deleteEvent(eventId: string): boolean {
     const deleted = this.events.delete(eventId);
     if (deleted) {
       logger.info(`Event deleted: ${eventId}`);
@@ -88,9 +80,8 @@ class EventService {
 
   /**
    * Mark event as sent
-   * @param {string} eventId - Event ID
    */
-  markEventAsSent(eventId) {
+  markEventAsSent(eventId: string): void {
     const event = this.events.get(eventId);
     if (event) {
       event.status = 'sent';
@@ -100,4 +91,4 @@ class EventService {
 }
 
 // Export singleton instance
-module.exports = new EventService();
+export default new EventService();

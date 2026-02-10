@@ -1,8 +1,8 @@
-const express = require('express');
-const eventRoutes = require('./eventRoutes');
-const webhookRoutes = require('./webhookRoutes');
+import express, { Router, Request, Response } from 'express';
+import eventRoutes from './eventRoutes';
+import webhookRoutes from './webhookRoutes';
 
-const router = express.Router();
+const router: Router = express.Router();
 
 /**
  * Main API Router
@@ -10,7 +10,7 @@ const router = express.Router();
  */
 
 // Health check for the API
-router.get('/health', (req, res) => {
+router.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     success: true,
     message: 'API is running',
@@ -24,4 +24,4 @@ router.use('/events', eventRoutes);
 // Webhook routes
 router.use('/webhook', webhookRoutes);
 
-module.exports = router;
+export default router;

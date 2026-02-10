@@ -1,11 +1,30 @@
-const RSVP = require('../models/RSVP');
-const logger = require('../utils/logger');
+import RSVP from '../models/RSVP';
+import logger from '../utils/logger';
+
+interface RSVPContact {
+  phoneNumber: string;
+  contactName: string;
+  respondedAt?: Date | null;
+}
+
+interface RSVPStats {
+  total: number;
+  accepted: number;
+  declined: number;
+  pending: number;
+  acceptedList: RSVPContact[];
+  declinedList: RSVPContact[];
+  pendingList: RSVPContact[];
+}
 
 /**
  * RSVP Service
  * Manages RSVP responses from invitees
  */
 class RSVPService {
+  private rsvps: Map<string, RSVP>;
+  private rsvpIndex: Map<string, string>;
+
   constructor() {
     // In-memory storage for POC (in production, use a database)
     this.rsvps = new Map();
@@ -15,11 +34,9 @@ class RSVPService {
 
   /**
    * Create RSVP records for event invitees
-   * @param {string} eventId - Event ID
-   * @param {Array<string>} phoneNumbers - Array of phone numbers
    */
-  createRSVPsForEvent(eventId, phoneNumbers) {
-    const rsvps = [];
+  createRSVPsForEvent(eventId: string, phoneNumbers: string[]): RSVP[] {
+    const rsvps: RSVP[] = [];
 
     for (const phoneNumber of phoneNumbers) {
       const rsvp = new RSVP({
@@ -39,11 +56,8 @@ class RSVPService {
 
   /**
    * Get RSVP by event and phone number
-   * @param {string} eventId - Event ID
-   * @param {string} phoneNumber - Phone number
-   * @returns {RSVP|null} RSVP or null if not found
    */
-  getRSVPByEventAndPhone(eventId, phoneNumber) {
+  getRSVPByEventAndPhone(eventId: string, phoneNumber: string): RSVP | null {
     const rsvpId = this.rsvpIndex.get(`${eventId}:${phoneNumber}`);
     if (!rsvpId) {
       return null;
@@ -53,11 +67,9 @@ class RSVPService {
 
   /**
    * Get all RSVPs for an event
-   * @param {string} eventId - Event ID
-   * @returns {Array<RSVP>} Array of RSVPs
    */
-  getRSVPsForEvent(eventId) {
-    const rsvps = [];
+  getRSVPsForEvent(eventId: string): RSVP[] {
+    const rsvps: RSVP[] = [];
     for (const rsvp of this.rsvps.values()) {
       if (rsvp.eventId === eventId) {
         rsvps.push(rsvp);
@@ -68,16 +80,16 @@ class RSVPService {
 
   /**
    * Update RSVP response
-   * @param {string} eventId - Event ID
-   * @param {string} phoneNumber - Phone number
-   * @param {string} response - Response ('accepted' or 'declined')
-   * @param {string} contactName - Contact name
-   * @param {string} message - Optional message
-   * @returns {RSVP|null} Updated RSVP or null if not found
    */
-  updateRSVPResponse(eventId, phoneNumber, response, contactName, message = '') {
+  updateRSVPResponse(
+    eventId: string,
+    phoneNumber: string,
+    response: 'accepted' | 'declined',
+    contactName?: string,
+    message: string = ''
+  ): RSVP | null {
     const rsvp = this.getRSVPByEventAndPhone(eventId, phoneNumber);
-    
+
     if (!rsvp) {
       logger.warn(`RSVP not found for event ${eventId} and phone ${phoneNumber}`);
       return null;
@@ -99,13 +111,11 @@ class RSVPService {
 
   /**
    * Get RSVP statistics for an event
-   * @param {string} eventId - Event ID
-   * @returns {Object} RSVP statistics
    */
-  getRSVPStats(eventId) {
+  getRSVPStats(eventId: string): RSVPStats {
     const rsvps = this.getRSVPsForEvent(eventId);
-    
-    const stats = {
+
+    const stats: RSVPStats = {
       total: rsvps.length,
       accepted: 0,
       declined: 0,
@@ -144,12 +154,10 @@ class RSVPService {
 
   /**
    * Check if phone number has pending RSVP for any event
-   * @param {string} phoneNumber - Phone number
-   * @returns {Array<RSVP>} Array of pending RSVPs
    */
-  getPendingRSVPsForPhone(phoneNumber) {
-    const pendingRSVPs = [];
-    
+  getPendingRSVPsForPhone(phoneNumber: string): RSVP[] {
+    const pendingRSVPs: RSVP[] = [];
+
     for (const rsvp of this.rsvps.values()) {
       if (rsvp.phoneNumber === phoneNumber && rsvp.response === 'pending') {
         pendingRSVPs.push(rsvp);
@@ -161,4 +169,4 @@ class RSVPService {
 }
 
 // Export singleton instance
-module.exports = new RSVPService();
+export default new RSVPService();

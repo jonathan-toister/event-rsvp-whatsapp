@@ -1,10 +1,11 @@
-const logger = require('../utils/logger');
+import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
 
 /**
  * Request Logger Middleware
  * Logs incoming HTTP requests
  */
-function requestLogger(req, res, next) {
+function requestLogger(req: Request, res: Response, next: NextFunction): void {
   const start = Date.now();
 
   // Log response when finished
@@ -22,4 +23,4 @@ function requestLogger(req, res, next) {
   next();
 }
 
-module.exports = requestLogger;
+export default requestLogger;

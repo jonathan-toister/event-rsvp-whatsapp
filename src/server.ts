@@ -1,22 +1,24 @@
-const createApp = require('./app');
-const config = require('./config');
-const logger = require('./utils/logger');
-const whatsappService = require('./services/whatsappService');
+import { Express } from 'express';
+import { Server } from 'http';
+import createApp from './app';
+import config from './config';
+import logger from './utils/logger';
+import whatsappService from './services/whatsappService';
 
 /**
  * Server Entry Point
  * Initializes and starts the application
  */
-async function startServer() {
+async function startServer(): Promise<void> {
   try {
     logger.info(`Starting ${config.appName}...`);
     logger.info(`Environment: ${config.nodeEnv}`);
 
     // Create Express app
-    const app = createApp();
+    const app: Express = createApp();
 
     // Start Express server
-    const server = app.listen(config.port, () => {
+    const server: Server = app.listen(config.port, () => {
       logger.info(`Server running on port ${config.port}`);
       logger.info(`API available at: http://localhost:${config.port}${config.apiPrefix}`);
     });
@@ -27,17 +29,17 @@ async function startServer() {
     logger.info('WhatsApp service initialized successfully');
 
     // Graceful shutdown
-    const gracefulShutdown = async (signal) => {
+    const gracefulShutdown = async (signal: string): Promise<void> => {
       logger.info(`${signal} received, shutting down gracefully...`);
-      
+
       // Stop accepting new connections
       server.close(async () => {
         logger.info('HTTP server closed');
-        
+
         // Destroy WhatsApp client
         await whatsappService.destroy();
         logger.info('WhatsApp client closed');
-        
+
         logger.info('Shutdown complete');
         process.exit(0);
       });
@@ -54,12 +56,12 @@ async function startServer() {
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
     // Handle uncaught errors
-    process.on('uncaughtException', (error) => {
+    process.on('uncaughtException', (error: Error) => {
       logger.error('Uncaught Exception:', error);
       process.exit(1);
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason: unknown, promise: Promise<unknown>) => {
       logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
       process.exit(1);
     });

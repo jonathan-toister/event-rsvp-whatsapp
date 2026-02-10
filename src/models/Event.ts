@@ -2,8 +2,38 @@
  * Event Model
  * Represents an event for which invitations will be sent via WhatsApp
  */
+
+export interface EventData {
+  id?: string;
+  title: string;
+  description?: string;
+  date: string;
+  time: string;
+  location?: string;
+  createdBy?: string;
+  createdAt?: Date;
+  invitees?: string[];
+  status?: 'draft' | 'scheduled' | 'sent';
+}
+
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
+
 class Event {
-  constructor(data) {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time: string;
+  location?: string;
+  createdBy?: string;
+  createdAt: Date;
+  invitees: string[];
+  status: 'draft' | 'scheduled' | 'sent';
+
+  constructor(data: EventData) {
     this.id = data.id || this.generateId();
     this.title = data.title;
     this.description = data.description;
@@ -12,18 +42,18 @@ class Event {
     this.location = data.location;
     this.createdBy = data.createdBy;
     this.createdAt = data.createdAt || new Date();
-    this.invitees = data.invitees || []; // Array of phone numbers
-    this.status = data.status || 'draft'; // draft, scheduled, sent
+    this.invitees = data.invitees || [];
+    this.status = data.status || 'draft';
   }
 
-  generateId() {
+  generateId(): string {
     return `event_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
    * Format event details as a WhatsApp message
    */
-  toWhatsAppMessage() {
+  toWhatsAppMessage(): string {
     return `
 🎉 *Event Invitation* 🎉
 
@@ -46,25 +76,25 @@ We look forward to seeing you there!
   /**
    * Validate event data
    */
-  validate() {
-    const errors = [];
-    
+  validate(): ValidationResult {
+    const errors: string[] = [];
+
     if (!this.title || this.title.trim() === '') {
       errors.push('Event title is required');
     }
-    
+
     if (!this.date) {
       errors.push('Event date is required');
     }
-    
+
     if (!this.time) {
       errors.push('Event time is required');
     }
-    
+
     if (!this.invitees || this.invitees.length === 0) {
       errors.push('At least one invitee is required');
     }
-    
+
     return {
       isValid: errors.length === 0,
       errors,
@@ -72,4 +102,4 @@ We look forward to seeing you there!
   }
 }
 
-module.exports = Event;
+export default Event;

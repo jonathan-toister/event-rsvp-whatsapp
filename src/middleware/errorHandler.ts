@@ -1,10 +1,15 @@
-const logger = require('../utils/logger');
+import { Request, Response, NextFunction } from 'express';
+import logger from '../utils/logger';
+
+interface CustomError extends Error {
+  statusCode?: number;
+}
 
 /**
  * Error Handler Middleware
  * Catches and formats errors for API responses
  */
-function errorHandler(err, req, res, next) {
+function errorHandler(err: CustomError, req: Request, res: Response, next: NextFunction): void {
   logger.error('Error:', {
     message: err.message,
     stack: err.stack,
@@ -22,4 +27,4 @@ function errorHandler(err, req, res, next) {
   });
 }
 
-module.exports = errorHandler;
+export default errorHandler;

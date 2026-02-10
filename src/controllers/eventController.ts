@@ -1,7 +1,9 @@
-const eventService = require('../services/eventService');
-const whatsappService = require('../services/whatsappService');
-const rsvpService = require('../services/rsvpService');
-const logger = require('../utils/logger');
+import { Request, Response } from 'express';
+import eventService from '../services/eventService';
+import whatsappService from '../services/whatsappService';
+import rsvpService from '../services/rsvpService';
+import logger from '../utils/logger';
+import { EventData } from '../models/Event';
 
 /**
  * Event Controller
@@ -12,9 +14,9 @@ class EventController {
    * Create a new event
    * POST /api/v1/events
    */
-  async createEvent(req, res) {
+  async createEvent(req: Request, res: Response): Promise<void> {
     try {
-      const eventData = req.body;
+      const eventData: EventData = req.body;
       const event = eventService.createEvent(eventData);
 
       res.status(201).json({
@@ -26,7 +28,7 @@ class EventController {
       logger.error('Error in createEvent controller:', error);
       res.status(400).json({
         success: false,
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -35,7 +37,7 @@ class EventController {
    * Get all events
    * GET /api/v1/events
    */
-  async getAllEvents(req, res) {
+  async getAllEvents(req: Request, res: Response): Promise<void> {
     try {
       const events = eventService.getAllEvents();
 
@@ -57,16 +59,17 @@ class EventController {
    * Get event by ID
    * GET /api/v1/events/:id
    */
-  async getEvent(req, res) {
+  async getEvent(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const event = eventService.getEvent(id);
 
       if (!event) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Event not found',
         });
+        return;
       }
 
       res.status(200).json({
@@ -86,24 +89,26 @@ class EventController {
    * Send event invitations via WhatsApp
    * POST /api/v1/events/:id/send
    */
-  async sendInvitations(req, res) {
+  async sendInvitations(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const event = eventService.getEvent(id);
 
       if (!event) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Event not found',
         });
+        return;
       }
 
       // Check if WhatsApp is ready
       if (!whatsappService.isClientReady()) {
-        return res.status(503).json({
+        res.status(503).json({
           success: false,
           message: 'WhatsApp client is not ready. Please try again later.',
         });
+        return;
       }
 
       // Create RSVP records for invitees
@@ -138,7 +143,7 @@ class EventController {
       res.status(500).json({
         success: false,
         message: 'Error sending invitations',
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
@@ -147,16 +152,17 @@ class EventController {
    * Get RSVPs for an event
    * GET /api/v1/events/:id/rsvps
    */
-  async getEventRSVPs(req, res) {
+  async getEventRSVPs(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const event = eventService.getEvent(id);
 
       if (!event) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Event not found',
         });
+        return;
       }
 
       const stats = rsvpService.getRSVPStats(id);
@@ -178,18 +184,19 @@ class EventController {
    * Update event
    * PUT /api/v1/events/:id
    */
-  async updateEvent(req, res) {
+  async updateEvent(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
-      const updates = req.body;
+      const id = String(req.params.id);
+      const updates: Partial<EventData> = req.body;
 
       const event = eventService.updateEvent(id, updates);
 
       if (!event) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Event not found',
         });
+        return;
       }
 
       res.status(200).json({
@@ -210,16 +217,17 @@ class EventController {
    * Delete event
    * DELETE /api/v1/events/:id
    */
-  async deleteEvent(req, res) {
+  async deleteEvent(req: Request, res: Response): Promise<void> {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const deleted = eventService.deleteEvent(id);
 
       if (!deleted) {
-        return res.status(404).json({
+        res.status(404).json({
           success: false,
           message: 'Event not found',
         });
+        return;
       }
 
       res.status(200).json({
@@ -236,4 +244,4 @@ class EventController {
   }
 }
 
-module.exports = new EventController();
+export default new EventController();

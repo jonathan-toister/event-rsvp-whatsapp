@@ -1,7 +1,11 @@
-const whatsappService = require('../services/whatsappService');
-const rsvpService = require('../services/rsvpService');
-const eventService = require('../services/eventService');
-const logger = require('../utils/logger');
+import { Request, Response } from 'express';
+import crypto from 'crypto';
+import whatsappService, { MessageData } from '../services/whatsappService';
+import rsvpService from '../services/rsvpService';
+import eventService from '../services/eventService';
+import logger from '../utils/logger';
+import config from '../config';
+import Event from '../models/Event';
 
 /**
  * Webhook Controller
@@ -17,7 +21,7 @@ class WebhookController {
    * Handle incoming WhatsApp messages
    * Processes user responses to event invitations
    */
-  async handleWhatsAppMessage(messageData) {
+  async handleWhatsAppMessage(messageData: MessageData): Promise<void> {
     try {
       const { phoneNumber, contactName, body, isGroup } = messageData;
 
@@ -69,11 +73,61 @@ class WebhookController {
   }
 
   /**
-   * Parse RSVP response from message text
-   * @param {string} text - Message text
-   * @returns {string|null} 'accepted', 'declined', or null
+   * Verify webhook endpoint (GET request from Meta)
+   * GET /api/v1/webhook
    */
-  parseRSVPResponse(text) {
+  async verifyWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      const mode = req.query['hub.mode'];
+      const token = req.query['hub.verify_token'];
+      const challenge = req.query['hub.challenge'];
+
+      logger.info('Webhook verification request received', { mode, token });
+
+      // Check if mode and token are correct
+      if (mode === 'subscribe' && token === config.whatsapp.webhookVerifyToken) {
+        logger.info('Webhook verified successfully');
+        res.status(200).send(challenge);
+      } else {
+        logger.warn('Webhook verification failed: invalid token or mode');
+        res.status(403).json({
+          success: false,
+          message: 'Webhook verification failed',
+        });
+      }
+    } catch (error) {
+      logger.error('Error in webhook verification:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error verifying webhook',
+      });
+    }
+  }
+
+  /**
+   * Receive webhook messages (POST request from Meta)
+   * POST /api/v1/webhook
+   */
+  async receiveWebhook(req: Request, res: Response): Promise<void> {
+    try {
+      logger.info('Webhook message received');
+
+      // Process the webhook data
+      await whatsappService.handleIncomingWebhook(req.body);
+
+      // Respond quickly to Meta (required within 20 seconds)
+      res.status(200).json({ success: true });
+    } catch (error) {
+      logger.error('Error receiving webhook:', error);
+      // Still respond 200 to prevent Meta from retrying
+      res.status(200).json({ success: true });
+    }
+  }
+
+  /**
+   * Parse RSVP response from message text
+   */
+  parseRSVPResponse(text: string): 'accepted' | 'declined' | null {
     const normalizedText = text.toLowerCase().trim();
 
     // Accept patterns
@@ -127,11 +181,8 @@ class WebhookController {
 
   /**
    * Get confirmation message based on response
-   * @param {string} response - Response type ('accepted' or 'declined')
-   * @param {Object} event - Event object
-   * @returns {string} Confirmation message
    */
-  getConfirmationMessage(response, event) {
+  getConfirmationMessage(response: 'accepted' | 'declined', event: Event): string {
     if (response === 'accepted') {
       return `
 ✅ Thank you for confirming!
@@ -159,7 +210,7 @@ Hope to see you at future events! 😊
    * Health check endpoint for webhooks
    * GET /api/v1/webhook/health
    */
-  async health(req, res) {
+  async health(req: Request, res: Response): Promise<void> {
     try {
       const isWhatsAppReady = whatsappService.isClientReady();
 
@@ -181,12 +232,12 @@ Hope to see you at future events! 😊
    * Get webhook statistics
    * GET /api/v1/webhook/stats
    */
-  async getStats(req, res) {
+  async getStats(req: Request, res: Response): Promise<void> {
     try {
       // Calculate statistics
       const allEvents = eventService.getAllEvents();
       const totalEvents = allEvents.length;
-      
+
       let totalRSVPs = 0;
       let totalAccepted = 0;
       let totalDeclined = 0;
@@ -223,4 +274,4 @@ Hope to see you at future events! 😊
   }
 }
 
-module.exports = new WebhookController();
+export default new WebhookController();
